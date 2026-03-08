@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -273,17 +273,20 @@ frontend_dir = next(
     None,
 )
 
+@app.get("/", include_in_schema=False)
+async def root():
+    if frontend_dir is not None:
+        return FileResponse(frontend_dir / "index.html")
+    return {
+        "status": "ok",
+        "message": "AI Chatbot API is running. Frontend is not bundled in this deployment.",
+        "health": "/health",
+        "docs": "/docs",
+    }
+
+
 if frontend_dir is not None:
     logger.info("Serving frontend from %s", frontend_dir)
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 else:
-    logger.warning("No frontend directory found. Serving API-only root endpoint.")
-
-    @app.get("/", include_in_schema=False)
-    async def root_info():
-        return {
-            "status": "ok",
-            "message": "AI Chatbot API is running. Frontend is not bundled in this deployment.",
-            "health": "/health",
-            "docs": "/docs",
-        }
+    logger.warning("No frontend directory found. Serving API-only endpoints.")
