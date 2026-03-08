@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from collections import defaultdict, deque
+from pathlib import Path
 from threading import Lock
 from time import monotonic
 from uuid import uuid4
@@ -12,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 try:
@@ -20,7 +22,8 @@ except ImportError:
     from chatbot import ChatbotProviderError, ChatbotService
 
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -252,3 +255,15 @@ async def get_history(session_id: str):
         )
     messages = chatbot_service.get_history(session_id=session_id, limit=200)
     return HistoryResponse(session_id=session_id, messages=messages)
+
+
+frontend_dir_candidates = [
+    BASE_DIR / "frontend",
+    BASE_DIR.parent / "frontend",
+]
+frontend_dir = next((path for path in frontend_dir_candidates if path.is_dir()), None)
+
+if frontend_dir is not None:
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+else:
+    logger.warning("No frontend directory found. Static assets are not mounted.")

@@ -1,4 +1,7 @@
-const API_BASE_URL = window.CHAT_API_BASE_URL || "http://localhost:8000";
+const isLocalFrontendOnly =
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") &&
+  window.location.port === "5500";
+const API_BASE_URL = window.CHAT_API_BASE_URL || (isLocalFrontendOnly ? "http://localhost:8000" : window.location.origin);
 const CHAT_ENDPOINT = `${API_BASE_URL}/chat`;
 const HEALTH_ENDPOINT = `${API_BASE_URL}/health`;
 
