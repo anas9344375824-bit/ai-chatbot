@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -275,6 +275,8 @@ frontend_dir = next(
 
 @app.get("/", include_in_schema=False)
 def home():
+    if frontend_dir is not None:
+        return FileResponse(frontend_dir / "index.html")
     return {"message": "AI Chatbot API is running"}
 
 
