@@ -2,7 +2,6 @@ services:
   - type: web
     name: ai-chatbot
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && if [ -d frontend ]; then mkdir -p backend/frontend && cp -r frontend/. backend/frontend/; fi
     startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     autoDeploy: true
-

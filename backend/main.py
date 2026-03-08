@@ -257,13 +257,33 @@ async def get_history(session_id: str):
     return HistoryResponse(session_id=session_id, messages=messages)
 
 
+frontend_dir_env = os.getenv("FRONTEND_DIR", "").strip()
 frontend_dir_candidates = [
+    Path(frontend_dir_env).resolve() if frontend_dir_env else None,
     BASE_DIR / "frontend",
     BASE_DIR.parent / "frontend",
+    Path.cwd() / "frontend",
 ]
-frontend_dir = next((path for path in frontend_dir_candidates if path.is_dir()), None)
+frontend_dir = next(
+    (
+        path
+        for path in frontend_dir_candidates
+        if path is not None and path.is_dir() and (path / "index.html").is_file()
+    ),
+    None,
+)
 
 if frontend_dir is not None:
+    logger.info("Serving frontend from %s", frontend_dir)
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 else:
-    logger.warning("No frontend directory found. Static assets are not mounted.")
+    logger.warning("No frontend directory found. Serving API-only root endpoint.")
+
+    @app.get("/", include_in_schema=False)
+    async def root_info():
+        return {
+            "status": "ok",
+            "message": "AI Chatbot API is running. Frontend is not bundled in this deployment.",
+            "health": "/health",
+            "docs": "/docs",
+        }
