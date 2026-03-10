@@ -74,7 +74,7 @@ Edit `backend/.env` and set:
 - `CHAT_PROVIDER` (`openai` or `huggingface`)
 - `HUGGINGFACE_API_TOKEN` (optional, required for some Hugging Face models)
 - `HUGGINGFACE_MODEL` (used when `CHAT_PROVIDER=huggingface`)
-- `HUGGINGFACE_API_URL` (optional override for Hugging Face endpoint)
+- `HUGGINGFACE_BASE_URL` (optional override for Hugging Face router endpoint)
 - `ALLOWED_ORIGINS` (use explicit frontend origin in production)
 
 ## 2. Run the Backend Server
@@ -154,7 +154,7 @@ curl http://localhost:8000/health
 
 Expected `base_url` is `http://localhost:11434/v1` and `openai_configured` is `true`.
 
-## 5. Use Hugging Face Inference API
+## 5. Use Hugging Face Inference Providers (OpenAI-compatible)
 
 1. Set the provider:
 
@@ -162,13 +162,13 @@ Expected `base_url` is `http://localhost:11434/v1` and `openai_configured` is `t
 CHAT_PROVIDER=huggingface
 ```
 
-2. Configure the Hugging Face model (and token if required):
+2. Configure the Hugging Face model and token:
 
 ```env
 HUGGINGFACE_API_TOKEN=your_hf_token
-HUGGINGFACE_MODEL=microsoft/DialoGPT-medium
-# Optional override:
-# HUGGINGFACE_API_URL=https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium
+HUGGINGFACE_MODEL=meta-llama/Llama-3.1-8B-Instruct
+# Optional override for the router:
+# HUGGINGFACE_BASE_URL=https://router.huggingface.co/v1
 ```
 
 3. Restart the backend:

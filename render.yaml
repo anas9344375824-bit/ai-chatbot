@@ -6,11 +6,11 @@ services:
       - key: CHAT_PROVIDER
         value: huggingface
       - key: HUGGINGFACE_MODEL
-        value: microsoft/DialoGPT-medium
+        value: meta-llama/Llama-3.1-8B-Instruct
       - key: HUGGINGFACE_API_TOKEN
         sync: false
-      - key: HUGGINGFACE_TIMEOUT_SECONDS
-        value: "30"
+      - key: HUGGINGFACE_BASE_URL
+        value: https://router.huggingface.co/v1
     buildCommand: pip install -r requirements.txt && if [ -d frontend ]; then mkdir -p backend/frontend && cp -r frontend/. backend/frontend/; fi
     startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     autoDeploy: true

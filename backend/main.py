@@ -17,9 +17,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 try:
-    from .chatbot import ChatbotProviderError, ChatbotService, HuggingFaceChatbotService
+    from .chatbot import ChatbotProviderError, ChatbotService
 except ImportError:
-    from chatbot import ChatbotProviderError, ChatbotService, HuggingFaceChatbotService
+    from chatbot import ChatbotProviderError, ChatbotService
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -72,17 +72,13 @@ def normalize_provider(raw_value: str) -> str:
         return "huggingface"
     return "openai"
 
-def resolve_huggingface_api_url(model: str, api_url: str) -> str:
-    if api_url:
-        return api_url
-    if model:
-        return f"https://api-inference.huggingface.co/models/{model}"
-    return ""
+def resolve_huggingface_base_url(raw_value: str) -> str:
+    return raw_value or "https://router.huggingface.co/v1"
 
 def provider_setup_hint() -> str:
     if CHAT_PROVIDER == "huggingface":
         return (
-            "Set HUGGINGFACE_MODEL or HUGGINGFACE_API_URL (and HUGGINGFACE_API_TOKEN if required) "
+            "Set HUGGINGFACE_MODEL and HUGGINGFACE_API_TOKEN (and optionally HUGGINGFACE_BASE_URL) "
             "in backend/.env, then restart the backend."
         )
     return (
@@ -96,12 +92,9 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
 CHAT_PROVIDER = normalize_provider(os.getenv("CHAT_PROVIDER", "openai"))
 HUGGINGFACE_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN", "").strip()
-HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL", "microsoft/DialoGPT-medium").strip()
+HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL", "meta-llama/Llama-3.1-8B-Instruct").strip()
+HUGGINGFACE_BASE_URL = os.getenv("HUGGINGFACE_BASE_URL", "").strip()
 HUGGINGFACE_API_URL = os.getenv("HUGGINGFACE_API_URL", "").strip()
-HUGGINGFACE_TIMEOUT_SECONDS = parse_positive_int(
-    os.getenv("HUGGINGFACE_TIMEOUT_SECONDS", "30"),
-    30,
-)
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
     "You are a helpful AI assistant for website visitors. Keep responses concise and practical.",
@@ -114,9 +107,8 @@ ALLOWED_ORIGINS = parse_allowed_origins(os.getenv("ALLOWED_ORIGINS", "*"))
 effective_api_key = OPENAI_API_KEY
 using_local_ollama = is_local_ollama_base_url(OPENAI_BASE_URL)
 running_on_render = is_render_environment()
-resolved_huggingface_api_url = resolve_huggingface_api_url(
-    HUGGINGFACE_MODEL,
-    HUGGINGFACE_API_URL,
+resolved_huggingface_api_url = resolve_huggingface_base_url(
+    HUGGINGFACE_BASE_URL or HUGGINGFACE_API_URL
 )
 
 if CHAT_PROVIDER == "openai":
@@ -180,20 +172,19 @@ class RateLimiter:
             return True, 0
 
 
-chatbot_service: ChatbotService | HuggingFaceChatbotService | None = None
+chatbot_service: ChatbotService | None = None
 if CHAT_PROVIDER == "huggingface":
-    if not resolved_huggingface_api_url:
+    if is_placeholder_key(HUGGINGFACE_API_TOKEN):
         logger.error(
-            "HUGGINGFACE_MODEL or HUGGINGFACE_API_URL must be set when CHAT_PROVIDER=huggingface."
+            "HUGGINGFACE_API_TOKEN is missing or placeholder. /chat will return 503 until a real token is configured."
         )
     else:
-        chatbot_service = HuggingFaceChatbotService(
-            api_token=HUGGINGFACE_API_TOKEN,
+        chatbot_service = ChatbotService(
+            api_key=HUGGINGFACE_API_TOKEN,
             model=HUGGINGFACE_MODEL,
             db_path=DB_PATH,
             system_prompt=SYSTEM_PROMPT,
-            api_url=HUGGINGFACE_API_URL or None,
-            timeout_seconds=float(HUGGINGFACE_TIMEOUT_SECONDS),
+            base_url=resolved_huggingface_api_url,
         )
 else:
     if using_local_ollama and running_on_render:
