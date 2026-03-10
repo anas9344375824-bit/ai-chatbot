@@ -195,8 +195,11 @@ async function checkBackendHealth() {
     }
 
     const data = await response.json();
-    if (!data.openai_configured) {
-      setStatus("API key missing", true);
+    const providerConfigured = Object.prototype.hasOwnProperty.call(data, "provider_configured")
+      ? data.provider_configured
+      : data.openai_configured;
+    if (!providerConfigured) {
+      setStatus("Provider not configured", true);
       return;
     }
 

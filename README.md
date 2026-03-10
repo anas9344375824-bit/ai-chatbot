@@ -71,6 +71,10 @@ Edit `backend/.env` and set:
 - `OPENAI_API_KEY`
 - `OPENAI_BASE_URL` (optional, for local Ollama mode)
 - `OPENAI_MODEL` (default: `gpt-4o-mini`)
+- `CHAT_PROVIDER` (`openai` or `huggingface`)
+- `HUGGINGFACE_API_TOKEN` (optional, required for some Hugging Face models)
+- `HUGGINGFACE_MODEL` (used when `CHAT_PROVIDER=huggingface`)
+- `HUGGINGFACE_API_URL` (optional override for Hugging Face endpoint)
 - `ALLOWED_ORIGINS` (use explicit frontend origin in production)
 
 ## 2. Run the Backend Server
@@ -86,11 +90,13 @@ API will be available at:
 - `http://localhost:8000/health`
 - `http://localhost:8000/history/{session_id}`
 
-`/health` now includes OpenAI configuration status:
+`/health` now includes provider configuration status:
 
 ```json
 {
   "status": "ok",
+  "provider": "openai",
+  "provider_configured": true,
   "openai_configured": true,
   "model": "gpt-4o-mini"
 }
@@ -147,6 +153,30 @@ curl http://localhost:8000/health
 ```
 
 Expected `base_url` is `http://localhost:11434/v1` and `openai_configured` is `true`.
+
+## 5. Use Hugging Face Inference API
+
+1. Set the provider:
+
+```env
+CHAT_PROVIDER=huggingface
+```
+
+2. Configure the Hugging Face model (and token if required):
+
+```env
+HUGGINGFACE_API_TOKEN=your_hf_token
+HUGGINGFACE_MODEL=microsoft/DialoGPT-medium
+# Optional override:
+# HUGGINGFACE_API_URL=https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium
+```
+
+3. Restart the backend:
+
+```bash
+cd backend
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 ## 5. Connect Frontend to Backend
 
